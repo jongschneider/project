@@ -28,7 +28,7 @@ func (c Base) env() string {
 	return string(c.AppConfig.Env)
 }
 
-// Load attempts to gather configuration information from the environment (and .env) and store it in the provided configurable
+// Load attempts to gather configuration information from the environment (and .env) and store it in the provided configurable.
 func Load(c configurable) (err error) {
 	err = godotenv.Load()
 	if err != nil {
@@ -44,6 +44,7 @@ func Load(c configurable) (err error) {
 	return nil
 }
 
+// SetLogrusFormatter sets the formatter for the logrus logger.
 func SetLogrusFormatter(l *logrus.Logger) {
 	var formatter logrus.Formatter
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
