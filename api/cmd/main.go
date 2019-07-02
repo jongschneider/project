@@ -41,9 +41,11 @@ func main() {
 
 	// Create a client
 	client := clientSVC.New(
-		clientSVC.LogConfigBlock{Logger: log},
-		clientSVC.DBConfigBlock{DB: db},
-	)
+		clientSVC.Config{
+			DB:         db,
+			Log:        log,
+			BcryptPass: cfg.BcryptPass,
+		})
 
 	// Create a new server with all of the routes attached to the server's handler
 	srv := server.New(cfg.Port, client)
