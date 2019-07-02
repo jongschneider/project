@@ -12,8 +12,9 @@ import (
 
 // Client is an object that holds anything that might be necessary in various services.
 type Client struct {
-	db *database.DB
-	tz *time.Location
+	tz  *time.Location
+	key string
+	db  *database.DB
 
 	log *logrus.Logger
 }
@@ -26,6 +27,11 @@ func (c *Client) DB() *database.DB {
 // TZ returns the Client's timezone
 func (c *Client) TZ() *time.Location {
 	return c.tz
+}
+
+// Key returns the Client's key
+func (c *Client) Key() string {
+	return c.key
 }
 
 // Log returns the Client's logger
@@ -42,6 +48,7 @@ func (c *Client) Log() *logrus.Logger {
 type Config struct {
 	DB  *database.DB
 	Log *logrus.Logger
+	Key string
 }
 
 // New returns a new Client
@@ -49,6 +56,7 @@ func New(cfg Config) *Client {
 	c := Client{
 		db:  cfg.DB,
 		log: cfg.Log,
+		key: cfg.Key,
 	}
 
 	var err error

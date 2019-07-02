@@ -7,12 +7,14 @@ import (
 	"github.com/jongschneider/youtube-project/api/internal/platform/encryption"
 
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
+	jwtSVC "github.com/jongschneider/youtube-project/api/internal/platform/jwt"
 	"github.com/jongschneider/youtube-project/api/internal/platform/web"
 	"github.com/pkg/errors"
 )
 
 type loginResponse struct {
 	web.Response
+	Token string `json:"token,omitempty"`
 }
 
 // Login lets a user login with a username and password
@@ -32,7 +34,7 @@ func Login(client *clientSVC.Client) http.HandlerFunc {
 		pass := r.FormValue("password")
 
 		// Go out to the db and try to get the hashed password associated with the provided email
-		hash, err := getPasswordByEmail(client, email)
+		u, err := getUserByEmail(client, email)
 		if err != nil {
 			// The email was not in the db
 			if err == sql.ErrNoRows {
@@ -47,8 +49,14 @@ func Login(client *clientSVC.Client) http.HandlerFunc {
 
 		// Compare the hashed password we had in the db with a hashed version of the password the user provided.
 		// If they are the same, we have a match!!!
-		if !encryption.Compare(hash, pass) {
+		if !encryption.Compare(u.Password, pass) {
 			web.RespondWithCodedError(w, r, http.StatusBadRequest, "invalid email/password", errors.Wrap(err, "login"))
+			return
+		}
+
+		token, err := jwtSVC.New(client.Key(), u.ID)
+		if err != nil {
+			web.RespondWithCodedError(w, r, http.StatusInternalServerError, "could not issue JWT token", errors.Wrap(err, "login"))
 			return
 		}
 
@@ -56,26 +64,30 @@ func Login(client *clientSVC.Client) http.HandlerFunc {
 			Response: web.Response{
 				Message: "sucess",
 			},
+			Token: token,
 		}, http.StatusOK)
 	}
 }
 
-// getPasswordByEmail gets the hashed password associated with the provided email
-func getPasswordByEmail(client *clientSVC.Client, email string) (string, error) {
-	db := client.DB()
-	query := `SELECT password FROM users WHERE email = ?`
+type user struct {
+	ID       int    `db:"id"`
+	Password string `db:"password"`
+}
 
-	target := []struct {
-		Password string `db:"password"`
-	}{}
+// getUserByEmail gets the hashed password associated with the provided email
+func getUserByEmail(client *clientSVC.Client, email string) (user, error) {
+	db := client.DB()
+	query := `SELECT id, password FROM users WHERE email = ?`
+
+	target := []user{}
 
 	err := db.Select(&target, query, email)
 	if err != nil {
-		return "", err
+		return user{}, err
 	}
 	if len(target) == 0 {
-		return "", sql.ErrNoRows
+		return user{}, sql.ErrNoRows
 	}
 
-	return target[0].Password, nil
+	return target[0], nil
 }

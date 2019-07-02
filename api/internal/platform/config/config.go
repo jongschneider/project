@@ -16,7 +16,8 @@ import (
 type Base struct {
 	AppConfig env.App
 	DBConfig  database.Config
-	Port      int `envconfig:"PORT" required:"true" default:"3000"`
+	Port      int    `envconfig:"PORT" required:"true" default:"3000"`
+	Key       string `envconfig:"KEY" required:"true" default:""`
 }
 
 // configurable is an internal interface to enforce this config as an embedded struct if another program wants to modify it.

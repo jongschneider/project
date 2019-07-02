@@ -44,6 +44,7 @@ func main() {
 		clientSVC.Config{
 			DB:  db,
 			Log: log,
+			Key: cfg.Key,
 		})
 
 	// Create a new server with all of the routes attached to the server's handler
