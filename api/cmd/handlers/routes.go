@@ -11,11 +11,12 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
-	"github.com/sirupsen/logrus"
 )
 
 // Router creates a new Router with all of our routes attached
-func Router(log *logrus.Logger, client *clientSVC.Client) http.Handler {
+func Router(client *clientSVC.Client) http.Handler {
+	log := client.Log()
+
 	r := chi.NewRouter()
 
 	r.Use(cors.New(cors.Options{
@@ -34,7 +35,7 @@ func Router(log *logrus.Logger, client *clientSVC.Client) http.Handler {
 		render.Respond(w, r, "Project API")
 	})
 
-	r.Get("/health", Health())
+	r.Get("/health", Health(client))
 
 	// Set up a static file server
 	workDir, err := os.Getwd()
@@ -46,7 +47,7 @@ func Router(log *logrus.Logger, client *clientSVC.Client) http.Handler {
 
 	r.Route("/auth", func(r chi.Router) {
 		// r.Use(mid.Auth)
-		r.Mount("/login", Login(log))
+		r.Mount("/login", Login(client))
 	})
 
 	return r

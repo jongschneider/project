@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
 	"github.com/jongschneider/youtube-project/api/internal/platform/web"
-	"github.com/sirupsen/logrus"
 
 	"github.com/go-chi/render"
 )
@@ -13,7 +13,9 @@ type loginResponse struct {
 }
 
 // Login lets a user login with a username and password
-func Login(log *logrus.Logger) http.HandlerFunc {
+func Login(client *clientSVC.Client) http.HandlerFunc {
+	log := client.Log()
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {

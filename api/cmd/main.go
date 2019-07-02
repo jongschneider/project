@@ -40,10 +40,13 @@ func main() {
 	db := database.New(cfg.DBConfig)
 
 	// Create a client
-	client := clientSVC.New(clientSVC.DBConfigBlock{DB: db})
+	client := clientSVC.New(
+		clientSVC.LogConfigBlock{Logger: log},
+		clientSVC.DBConfigBlock{DB: db},
+	)
 
 	// Create a new server with all of the routes attached to the server's handler
-	srv := server.New(cfg.Port, log, client)
+	srv := server.New(cfg.Port, client)
 
 	// Gracefully handle shutdowns
 	go shutdown(srv, time.Second*30)

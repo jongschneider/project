@@ -1,0 +1,15 @@
+version: "3.6"
+
+services:
+  mysql:
+    image: mysql:5.7.22
+    ports:
+      - 3306:3306
+    volumes:
+      - ../api/internal/schema:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      MYSQL_DATABASE: "example"
+    # logging:
+    #   driver: none
+    command: --sql_mode="NO_ENGINE_SUBSTITUTION"

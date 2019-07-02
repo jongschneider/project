@@ -14,11 +14,11 @@ var driverName = "mysql"
 // Config holds all of the configuration for a database connection
 type Config struct {
 	User            string `envconfig:"MYSQL_USER" required:"true" default:"root"`
-	Password        string `envconfig:"MYSQL_PASSWORD" required:"true" default:""`
+	Password        string `envconfig:"MYSQL_PASSWORD" default:""`
 	Host            string `envconfig:"MYSQL_HOST" required:"true" default:"localhost"`
 	Port            int    `envconfig:"MYSQL_PORT" required:"true" default:"3306"`
-	DBName          string `envconfig:"MYSQL_DBNAME" required:"true" default:""`
-	DisableTLS      bool   `envconfig:"MYSQL_DISABLETLS" required:"true" default:"true"`
+	DBName          string `envconfig:"MYSQL_DBNAME" required:"true" default:"example"`
+	TLS             bool   `envconfig:"MYSQL_TLS" required:"true" default:"false"`
 	MultiStatements bool   `envconfig:"MYSQL_MULTISTATEMENTS" required:"true" default:"true"`
 }
 
@@ -44,17 +44,13 @@ func getConnectionString(cfg Config) string {
 		cfg.Host,
 		cfg.Port,
 		cfg.DBName,
-		cfg.DisableTLS,
+		cfg.TLS,
 		cfg.MultiStatements,
 	)
 }
 
 func pingDB(ctx context.Context, db *sqlx.DB) error {
-	var target = struct {
-		v int `db:"val"`
-	}{}
-
-	return db.GetContext(ctx, &target, "SELECT 1 AS val")
+	return db.PingContext(ctx)
 }
 
 // must panics if passed an error that is not nil.

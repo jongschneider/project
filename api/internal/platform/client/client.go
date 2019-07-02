@@ -3,6 +3,9 @@ package client
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/jongschneider/youtube-project/api/internal/platform/config"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	"github.com/pkg/errors"
 )
@@ -11,6 +14,8 @@ import (
 type Client struct {
 	db *database.DB
 	tz *time.Location
+
+	log *logrus.Logger
 }
 
 // DB returns the Client's db connection
@@ -21,6 +26,16 @@ func (c *Client) DB() *database.DB {
 // TZ returns the Client's timezone
 func (c *Client) TZ() *time.Location {
 	return c.tz
+}
+
+// Log returns the Client's logger
+func (c *Client) Log() *logrus.Logger {
+	if c.log == nil {
+		c.log = logrus.New()
+		config.SetLogrusFormatter(c.log)
+	}
+
+	return c.log
 }
 
 // New returns a new Client
@@ -37,6 +52,7 @@ func New(configBlocks ...ConfigBlock) *Client {
 		if err := cb.Configure(c); err != nil {
 			panic(errors.Wrapf(err, "config block: %s", cb))
 		}
+		c.Log().Infof("loaded config block: %s", cb)
 	}
 
 	return c
@@ -60,5 +76,19 @@ func (d DBConfigBlock) Configure(c *Client) error {
 }
 
 func (d DBConfigBlock) String() string {
-	return "DBConfigBlock"
+	return "DB Config Block"
+}
+
+// LogConfigBlock adds a Logger to a Client
+type LogConfigBlock struct {
+	*logrus.Logger
+}
+
+func (l LogConfigBlock) Configure(c *Client) error {
+	c.log = l.Logger
+	return nil
+}
+
+func (l LogConfigBlock) String() string {
+	return "Log Config Block"
 }
