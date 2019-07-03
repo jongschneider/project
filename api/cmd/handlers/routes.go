@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
+	authSVC "github.com/jongschneider/youtube-project/api/internal/mid/auth"
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
 )
 
@@ -45,9 +46,12 @@ func Router(client *clientSVC.Client) http.Handler {
 	filesDir := filepath.Join(workDir, "static")
 	FileServer(r, "/static", http.Dir(filesDir))
 
+	r.Post("/login", Login(client))
+
 	r.Route("/auth", func(r chi.Router) {
-		// r.Use(mid.Auth)
-		r.Mount("/login", Login(client))
+		r.Use(authSVC.JWTMiddleware(client))
+		// r.Mount("/login", Login(client))
+
 	})
 
 	return r

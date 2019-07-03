@@ -8,6 +8,7 @@ import (
 
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
 	jwtSVC "github.com/jongschneider/youtube-project/api/internal/platform/jwt"
+	"github.com/jongschneider/youtube-project/api/internal/platform/user"
 	"github.com/jongschneider/youtube-project/api/internal/platform/web"
 	"github.com/pkg/errors"
 )
@@ -34,7 +35,7 @@ func Login(client *clientSVC.Client) http.HandlerFunc {
 		pass := r.FormValue("password")
 
 		// Go out to the db and try to get the hashed password associated with the provided email
-		u, err := getUserByEmail(client, email)
+		u, err := user.GetUserByEmail(client, email)
 		if err != nil {
 			// The email was not in the db
 			if err == sql.ErrNoRows {
@@ -67,27 +68,4 @@ func Login(client *clientSVC.Client) http.HandlerFunc {
 			Token: token,
 		}, http.StatusOK)
 	}
-}
-
-type user struct {
-	ID       int    `db:"id"`
-	Password string `db:"password"`
-}
-
-// getUserByEmail gets the hashed password associated with the provided email
-func getUserByEmail(client *clientSVC.Client, email string) (user, error) {
-	db := client.DB()
-	query := `SELECT id, password FROM users WHERE email = ?`
-
-	target := []user{}
-
-	err := db.Select(&target, query, email)
-	if err != nil {
-		return user{}, err
-	}
-	if len(target) == 0 {
-		return user{}, sql.ErrNoRows
-	}
-
-	return target[0], nil
 }
