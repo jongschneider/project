@@ -14,10 +14,10 @@ import (
 )
 
 // ctxKey represents the type of value for the context key.
-type ctxKey int
+type authCtxKey string
 
 // Key is used to store/retrieve a Claims value from a context.Context.
-const Key ctxKey = 1
+const tokenKey authCtxKey = "token"
 
 // JWTMiddleware is middleware that validates a JWT token found in the header of a request.
 func JWTMiddleware(client *clientSVC.Client) func(http.Handler) http.Handler {
@@ -49,7 +49,7 @@ func JWTMiddleware(client *clientSVC.Client) func(http.Handler) http.Handler {
 			}
 
 			// Add claims to the context so they can be retrieved later.
-			ctx := context.WithValue(r.Context(), Key, id)
+			ctx := context.WithValue(r.Context(), tokenKey, id)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

@@ -2,40 +2,46 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/jongschneider/youtube-project/api/cmd/handlers/router"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 
-	"github.com/jongschneider/youtube-project/api/cmd/server"
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
 	"github.com/jongschneider/youtube-project/api/internal/platform/config"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-var cfg struct {
-	config.Base
-}
-
+var cfg config.Base
 var log *logrus.Logger
 
 func init() {
 	// Set up the global logger for the api
 	log = logrus.New()
 	config.SetLogrusFormatter(log)
-}
 
-func main() {
 	// Load in the configuration via a .env file
 	err := config.Load(&cfg)
 	if err != nil {
 		log.WithError(err).Fatal("config: load")
 	}
 
+	if !cfg.Debug {
+		log.SetFormatter(&logrus.JSONFormatter{})
+	}
+
+	log.WithFields(cfg.LogFields()).Info("Startup Config")
+
+}
+
+func main() {
 	// Connect to DB
 	db := database.New(cfg.DBConfig)
 
@@ -44,18 +50,28 @@ func main() {
 		clientSVC.Config{
 			DB:  db,
 			Log: log,
-			Key: cfg.Key,
+			Key: mustLoadAuthKey(),
 		})
 
 	// Create a new server with all of the routes attached to the server's handler
-	srv := server.New(cfg.Port, client)
+	srv := &http.Server{
+		Addr:           fmt.Sprintf(":%d", cfg.Port),
+		Handler:        router.New(client),
+		ReadTimeout:    20 * time.Second,
+		WriteTimeout:   20 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+		TLSConfig: &tls.Config{
+			Certificates:       []tls.Certificate{mustLoadCert()},
+			InsecureSkipVerify: cfg.Debug, // when in debug mode (working locally) skip verification of the certs
+		},
+	}
 
 	// Gracefully handle shutdowns
 	go shutdown(srv, time.Second*30)
 
 	// Start the server listening for requests.
 	log.Printf("listening on port%s", srv.Addr)
-	err = srv.ListenAndServe()
+	err := srv.ListenAndServeTLS("", "")
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalln(errors.Wrap(err, "start server"))
 	}

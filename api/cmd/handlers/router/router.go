@@ -1,4 +1,4 @@
-package handlers
+package router
 
 import (
 	"fmt"
@@ -10,12 +10,13 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
+	h "github.com/jongschneider/youtube-project/api/cmd/handlers"
 	authSVC "github.com/jongschneider/youtube-project/api/internal/mid/auth"
 	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
 )
 
-// Router creates a new Router with all of our routes attached
-func Router(client *clientSVC.Client) http.Handler {
+// New creates a new New with all of our routes attached
+func New(client *clientSVC.Client) http.Handler {
 	log := client.Log()
 
 	r := chi.NewRouter()
@@ -36,7 +37,7 @@ func Router(client *clientSVC.Client) http.Handler {
 		render.Respond(w, r, "Project API")
 	})
 
-	r.Get("/health", Health(client))
+	r.Get("/health", h.Health(client))
 
 	// Set up a static file server
 	workDir, err := os.Getwd()
@@ -44,9 +45,9 @@ func Router(client *clientSVC.Client) http.Handler {
 		log.WithError(err).Fatal()
 	}
 	filesDir := filepath.Join(workDir, "static")
-	FileServer(r, "/static", http.Dir(filesDir))
+	h.FileServer(r, "/static", http.Dir(filesDir))
 
-	r.Post("/login", Login(client))
+	r.Post("/login", h.Login(client))
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Use(authSVC.JWTMiddleware(client))
