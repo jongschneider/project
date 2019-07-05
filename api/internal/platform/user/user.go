@@ -3,9 +3,10 @@ package user
 import (
 	"database/sql"
 
-	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
+	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 )
 
+// User represents a user in the DB
 type User struct {
 	ID       int    `db:"id"`
 	Password string `db:"password"`
@@ -13,8 +14,7 @@ type User struct {
 }
 
 // GetUserByEmail gets a user associated with the provided email
-func GetUserByEmail(client *clientSVC.Client, email string) (User, error) {
-	db := client.DB()
+func GetUserByEmail(db *database.DB, email string) (User, error) {
 	query := `SELECT id, password, email FROM users WHERE email = ?`
 
 	target := []User{}
@@ -32,8 +32,7 @@ func GetUserByEmail(client *clientSVC.Client, email string) (User, error) {
 }
 
 // GetUserByID gets gets a user associated with the provided id
-func GetUserByID(client *clientSVC.Client, id int) (User, error) {
-	db := client.DB()
+func GetUserByID(db *database.DB, id int) (User, error) {
 	query := `SELECT id, password, email FROM users WHERE id = ?`
 
 	target := []User{}

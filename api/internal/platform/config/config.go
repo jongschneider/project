@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/jongschneider/youtube-project/api/internal/platform/cache"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	"github.com/jongschneider/youtube-project/api/internal/platform/env"
 	"github.com/kelseyhightower/envconfig"
@@ -14,10 +15,11 @@ import (
 
 // Base holds the shared config used by each binary in this repo
 type Base struct {
-	AppConfig env.App
-	DBConfig  database.Config
-	Port      int  `envconfig:"PORT" required:"true" default:"3000"`
-	Debug     bool `envconfig:"DEBUG" default:"false"`
+	AppConfig   env.App
+	DBConfig    database.Config
+	CacheConfig cache.Config
+	Port        int  `envconfig:"PORT" required:"true" default:"3000"`
+	Debug       bool `envconfig:"DEBUG" default:"false"`
 }
 
 // configurable is an internal interface to enforce this config as an embedded struct if another program wants to modify it.
@@ -45,6 +47,12 @@ func (c Base) LogFields() logrus.Fields {
 		fields["db_name"] = c.DBConfig.DBName
 		fields["db_tls"] = c.DBConfig.TLS
 		fields["db_multistatements"] = c.DBConfig.MultiStatements
+
+		fields["redis_host"] = c.CacheConfig.Host
+		fields["redis_port"] = c.CacheConfig.Port
+		fields["redis_pass"] = c.CacheConfig.Password
+		fields["redis_db"] = c.CacheConfig.DB
+		fields["redis_tls"] = c.CacheConfig.TLS
 	}
 
 	return fields

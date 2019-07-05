@@ -1,4 +1,4 @@
-package router
+package handler
 
 import (
 	"fmt"
@@ -6,19 +6,51 @@ import (
 	"os"
 	"path/filepath"
 
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
-	h "github.com/jongschneider/youtube-project/api/cmd/handlers"
-	authSVC "github.com/jongschneider/youtube-project/api/internal/mid/auth"
-	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
+	"github.com/go-redis/redis"
+	"github.com/jongschneider/youtube-project/api/internal/mid/auth"
+	"github.com/jongschneider/youtube-project/api/internal/platform/database"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-// New creates a new New with all of our routes attached
-func New(client *clientSVC.Client) http.Handler {
-	log := client.Log()
+// Handler is an object that holds anything that might be necessary in various services.
+type Handler struct {
+	tz    *time.Location
+	key   string
+	db    *database.DB
+	cache *redis.Client
+	log   *logrus.Logger
+	http.Handler
+}
 
+// Config configures a new *Handler
+type Config struct {
+	DB    *database.DB
+	Cache *redis.Client
+	Log   *logrus.Logger
+	Key   string
+}
+
+// New returns a new Handler
+func New(cfg Config) *Handler {
+	h := Handler{
+		db:    cfg.DB,
+		cache: cfg.Cache,
+		log:   cfg.Log,
+		key:   cfg.Key,
+	}
+
+	var err error
+	h.tz, err = time.LoadLocation("America/New_York")
+	if err != nil {
+		panic(errors.Wrap(err, "load location"))
+	}
 	r := chi.NewRouter()
 
 	r.Use(cors.New(cors.Options{
@@ -37,25 +69,27 @@ func New(client *clientSVC.Client) http.Handler {
 		render.Respond(w, r, "Project API")
 	})
 
-	r.Get("/health", h.Health(client))
+	r.Get("/health", h.Health)
 
 	// Set up a static file server
 	workDir, err := os.Getwd()
 	if err != nil {
-		log.WithError(err).Fatal()
+		h.log.WithError(err).Fatal()
 	}
 	filesDir := filepath.Join(workDir, "static")
 	h.FileServer(r, "/static", http.Dir(filesDir))
 
-	r.Post("/login", h.Login(client))
+	r.Post("/login", h.Login)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Use(authSVC.JWTMiddleware(client))
+		r.Use(auth.JWTMiddleware(h.key, h.db))
 		// r.Mount("/login", Login(client))
 
 	})
 
-	return r
+	h.Handler = r
+
+	return &h
 }
 
 // articleRouter is an example of how to create a subrouter used for versioning

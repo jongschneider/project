@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
+	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	jwtSVC "github.com/jongschneider/youtube-project/api/internal/platform/jwt"
 	"github.com/jongschneider/youtube-project/api/internal/platform/user"
 	"github.com/jongschneider/youtube-project/api/internal/platform/web"
@@ -20,7 +20,7 @@ type authCtxKey string
 const tokenKey authCtxKey = "token"
 
 // JWTMiddleware is middleware that validates a JWT token found in the header of a request.
-func JWTMiddleware(client *clientSVC.Client) func(http.Handler) http.Handler {
+func JWTMiddleware(key string, db *database.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -34,14 +34,14 @@ func JWTMiddleware(client *clientSVC.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			id, err := jwtSVC.ParseToken(client.Key(), parts[1])
+			id, err := jwtSVC.ParseToken(key, parts[1])
 			if err != nil {
 				log.Println("AUTH ERROR: jwtSVC.ParseToken")
 				web.RespondWithCodedError(w, r, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized), err)
 				return
 			}
 
-			_, err = user.GetUserByID(client, id)
+			_, err = user.GetUserByID(db, id)
 			if err != nil {
 				log.Println("AUTH ERROR: user.GetUserByID")
 				web.RespondWithCodedError(w, r, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized), err)

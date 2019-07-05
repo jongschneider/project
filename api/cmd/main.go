@@ -10,11 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jongschneider/youtube-project/api/cmd/handlers/router"
-	"github.com/jongschneider/youtube-project/api/internal/platform/database"
-
-	clientSVC "github.com/jongschneider/youtube-project/api/internal/platform/client"
+	"github.com/jongschneider/youtube-project/api/cmd/handler"
+	"github.com/jongschneider/youtube-project/api/internal/platform/cache"
 	"github.com/jongschneider/youtube-project/api/internal/platform/config"
+	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -42,21 +41,20 @@ func init() {
 }
 
 func main() {
-	// Connect to DB
-	db := database.New(cfg.DBConfig)
 
-	// Create a client
-	client := clientSVC.New(
-		clientSVC.Config{
-			DB:  db,
-			Log: log,
-			Key: mustLoadAuthKey(),
+	// Create a handler
+	h := handler.New(
+		handler.Config{
+			DB:    database.New(cfg.DBConfig),
+			Cache: cache.New(cfg.CacheConfig),
+			Log:   log,
+			Key:   mustLoadAuthKey(),
 		})
 
 	// Create a new server with all of the routes attached to the server's handler
 	srv := &http.Server{
 		Addr:           fmt.Sprintf(":%d", cfg.Port),
-		Handler:        router.New(client),
+		Handler:        h.Handler,
 		ReadTimeout:    20 * time.Second,
 		WriteTimeout:   20 * time.Second,
 		MaxHeaderBytes: 1 << 20,

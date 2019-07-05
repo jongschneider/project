@@ -29,7 +29,15 @@ type DB struct {
 
 // New returns a new db connection
 func New(cfg Config) *DB {
-	db := connectToDB(cfg)
+	connectionString := getConnectionString(cfg)
+
+	db := sqlx.MustOpen(driverName, connectionString)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	mustPingDB(ctx, db)
+
 	return &DB{db}
 }
 
@@ -53,29 +61,10 @@ func pingDB(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }
 
-// must panics if passed an error that is not nil.
-// use for mission critical functions.
-func must(err error) {
+// mustPingDB is the same a pingDB but it panics on error.
+func mustPingDB(ctx context.Context, db *sqlx.DB) {
+	err := pingDB(ctx, db)
 	if err != nil {
 		panic(err)
 	}
-}
-
-// mustPingDB is the same a pingDB but it panics on error.
-func mustPingDB(ctx context.Context, db *sqlx.DB) {
-	must(pingDB(ctx, db))
-}
-
-// connectToDB connects to a db
-func connectToDB(cfg Config) *sqlx.DB {
-	connectionString := getConnectionString(cfg)
-
-	db := sqlx.MustOpen(driverName, connectionString)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	mustPingDB(ctx, db)
-
-	return db
 }
