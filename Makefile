@@ -7,6 +7,7 @@ dev:
 clean:
 	docker-compose -f dev/docker-compose.yml down --remove-orphans
 	docker system prune -f
+	rm dump.rdb
 
 run:
 	go install ./... && cmd
