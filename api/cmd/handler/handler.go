@@ -84,6 +84,7 @@ func New(cfg Config) *Handler {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Use(h.auth.RequireValidToken)
+		r.Post("/login", h.Login)
 		r.Mount("/user", h.userRouter())
 	})
 
@@ -100,6 +101,5 @@ func (h *Handler) userRouter() http.Handler {
 	r.Get("/{ID}", h.GetUser)
 	r.Delete("/{ID}", h.Delete)
 	r.Put("/{ID}", h.Update)
-	r.Post("/login", h.Login)
 	return r
 }
