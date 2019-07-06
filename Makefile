@@ -6,6 +6,19 @@ dev:
 	# docker-compose -f dev/docker-compose.yml up --build --remove-orphans
 	docker run --network host jimmysawczuk/wait-for-mysql 'root:@tcp(localhost:3306)/example'
 
+dev-build:
+	cp key.pem auth.pem certificate.pem ./api
+	docker-compose -f dev/docker-compose.yml up --build --remove-orphans
+	docker run --network host jimmysawczuk/wait-for-mysql 'root:@tcp(localhost:3306)/example'
+
+local:
+	docker-compose -f dev/docker-compose.local.yml up --remove-orphans
+	docker run --network host jimmysawczuk/wait-for-mysql 'root:@tcp(localhost:3306)/example'
+
+local-build:
+	docker-compose -f dev/docker-compose.local.yml up --build --remove-orphans -d
+	docker run --network host jimmysawczuk/wait-for-mysql 'root:@tcp(localhost:3306)/example'
+
 clean:
 	docker-compose -f dev/docker-compose.yml down --remove-orphans
 	docker system prune -f
@@ -29,4 +42,4 @@ key:
 	rm auth.pem.pub
 
 tidy:
-	cd api;	export GO111MODULE=on; go mod tidy
+	cd api;	export GO111MODULE=on; go mod tidy; go build ./...

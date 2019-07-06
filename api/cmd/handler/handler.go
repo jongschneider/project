@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -85,7 +84,7 @@ func New(cfg Config) *Handler {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Use(h.auth.RequireValidToken)
-		r.Post("/login", h.Login)
+		r.Mount("/user", h.userRouter())
 	})
 
 	h.Handler = r
@@ -93,16 +92,14 @@ func New(cfg Config) *Handler {
 	return &h
 }
 
-// articleRouter is an example of how to create a subrouter used for versioning
-func articleRouter() http.Handler {
+// userRouter is an example of how to create a subrouter used for versioning
+func (h *Handler) userRouter() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		render.Respond(w, r, "hello")
-	})
-	r.Route("/{articleID}", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			render.Respond(w, r, fmt.Sprintf("article %s", chi.URLParam(r, "articleID")))
-		})
-	})
+	r.Post("/", h.Create)
+	r.Get("/", h.GetAllUsers)
+	r.Get("/{ID}", h.GetUser)
+	r.Delete("/{ID}", h.Delete)
+	r.Put("/{ID}", h.Update)
+	r.Post("/login", h.Login)
 	return r
 }

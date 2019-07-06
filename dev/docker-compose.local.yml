@@ -30,16 +30,3 @@ services:
       - 6379:6379
     logging:
       driver: none
-
-  api:
-    build:
-      context: ../api
-      dockerfile: Dockerfile.dev
-    environment:
-      MYSQL_HOST: mysql
-      REDIS_HOST: redis
-    ports:
-      - 3001:3000
-    depends_on:
-      - mysql
-      - redis

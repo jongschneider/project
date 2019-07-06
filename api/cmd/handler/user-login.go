@@ -12,7 +12,6 @@ import (
 
 type loginResponse struct {
 	web.Response
-	Token string `json:"token,omitempty"`
 }
 
 // Login lets a user login with a username and password
@@ -29,7 +28,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	pass := r.FormValue("password")
 
 	// Go out to the db and try to get the hashed password associated with the provided email
-	u, err := user.GetUserByEmail(h.db, email)
+	u, err := user.GetByEmail(h.db, email)
 	if err != nil {
 		// The email was not in the db
 		if err == sql.ErrNoRows {
