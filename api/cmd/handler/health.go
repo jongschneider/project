@@ -13,6 +13,10 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	web.Respond(w, r, "Healthy", http.StatusOK)
+	response := web.Response{
+		Message: "Healthy",
+	}
+
+	web.Respond(w, r, response, http.StatusOK)
 	return
 }

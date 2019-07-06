@@ -47,7 +47,6 @@ func main() {
 
 	db := database.New(cfg.DBConfig)
 	cacheSVC := cache.New(cfg.CacheConfig)
-	fmt.Println("cacheSVC:", cacheSVC)
 	authSVC := getAuthClient(cacheSVC)
 	// Create a handler
 	h := handler.New(

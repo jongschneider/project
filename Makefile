@@ -1,12 +1,17 @@
 .PHONY: dev clean run cert
 
 dev:
+	cp key.pem auth.pem certificate.pem ./api
 	docker-compose -f dev/docker-compose.yml up --remove-orphans -d
+	# docker-compose -f dev/docker-compose.yml up --build --remove-orphans
 	docker run --network host jimmysawczuk/wait-for-mysql 'root:@tcp(localhost:3306)/example'
 
 clean:
 	docker-compose -f dev/docker-compose.yml down --remove-orphans
 	docker system prune -f
+	rm ./api/key.pem
+	rm ./api/auth.pem
+	rm ./api/certificate.pem
 
 run:
 	go install ./... && cmd
@@ -22,3 +27,6 @@ cert:
 key:
 	ssh-keygen -m PEM -b 2048 -t rsa -f ./auth.pem -N ""
 	rm auth.pem.pub
+
+tidy:
+	cd api;	export GO111MODULE=on; go mod tidy

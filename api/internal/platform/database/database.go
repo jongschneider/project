@@ -6,6 +6,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // provides the mysql driver for sqlx
+	"github.com/jimmysawczuk/try"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -31,12 +32,33 @@ type DB struct {
 func New(cfg Config) *DB {
 	connectionString := getConnectionString(cfg)
 
-	db := sqlx.MustOpen(driverName, connectionString)
+	// We have to use the try.Try package to connect to the db because when we are setting up the
+	// services to run in our dev environment, the api is ready before the db. When the api tries
+	// to establish a connection to the db, it fails, because the db isn't running yet.
+	// This results in a panic.
+	// The try.Try package simply attempts to perform the code inside the function. If it errors,
+	// it waits a duration - in this case 5 seconds - and then makes another attempt. It will keep
+	// doing this until the timeout has elapsed - in this case 160 seconds.
+	// This gives our db time to set up and the api a chance to make a connection.
+	var db *sqlx.DB
+	var err error
+	if terr := try.Try(func() error {
+		db, err = sqlx.Open(driverName, connectionString)
+		if err != nil {
+			return err
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 
-	mustPingDB(ctx, db)
+		err = pingDB(ctx, db)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, 160*time.Second, 5*time.Second); terr != nil {
+		panic(terr)
+	}
 
 	return &DB{db}
 }
@@ -59,12 +81,4 @@ func getConnectionString(cfg Config) string {
 
 func pingDB(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
-}
-
-// mustPingDB is the same a pingDB but it panics on error.
-func mustPingDB(ctx context.Context, db *sqlx.DB) {
-	err := pingDB(ctx, db)
-	if err != nil {
-		panic(err)
-	}
 }
