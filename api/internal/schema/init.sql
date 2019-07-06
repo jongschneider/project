@@ -10,4 +10,4 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB CHARSET=utf8;
 
 INSERT INTO users (email, password) VALUES
-    ('test@test.com', '12345');
+    ('test@test.com', '$2a$10$eNxD0bfWdeWw3o3gLGVjNeiw/H0/KVaz6wh/UkFmKHm2ZJXOhvvVW');

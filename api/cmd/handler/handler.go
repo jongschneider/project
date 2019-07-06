@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	"github.com/go-redis/redis"
-	"github.com/jongschneider/youtube-project/api/internal/mid/auth"
+	"github.com/jongschneider/youtube-project/api/internal/platform/auth"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -22,10 +22,10 @@ import (
 // Handler is an object that holds anything that might be necessary in various services.
 type Handler struct {
 	tz    *time.Location
-	key   string
 	db    *database.DB
 	cache *redis.Client
 	log   *logrus.Logger
+	auth  *auth.Service
 	http.Handler
 }
 
@@ -33,6 +33,7 @@ type Handler struct {
 type Config struct {
 	DB    *database.DB
 	Cache *redis.Client
+	Auth  *auth.Service
 	Log   *logrus.Logger
 	Key   string
 }
@@ -42,8 +43,8 @@ func New(cfg Config) *Handler {
 	h := Handler{
 		db:    cfg.DB,
 		cache: cfg.Cache,
+		auth:  cfg.Auth,
 		log:   cfg.Log,
-		key:   cfg.Key,
 	}
 
 	var err error
@@ -51,6 +52,7 @@ func New(cfg Config) *Handler {
 	if err != nil {
 		panic(errors.Wrap(err, "load location"))
 	}
+
 	r := chi.NewRouter()
 
 	r.Use(cors.New(cors.Options{
@@ -79,12 +81,11 @@ func New(cfg Config) *Handler {
 	filesDir := filepath.Join(workDir, "static")
 	h.FileServer(r, "/static", http.Dir(filesDir))
 
-	r.Post("/login", h.Login)
+	r.Get("/token", h.auth.IssueTokenHandler)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Use(auth.JWTMiddleware(h.key, h.db))
-		// r.Mount("/login", Login(client))
-
+		r.Use(h.auth.RequireValidToken)
+		r.Post("/login", h.Login)
 	})
 
 	h.Handler = r

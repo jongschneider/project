@@ -10,10 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/jongschneider/youtube-project/api/cmd/handler"
+	"github.com/jongschneider/youtube-project/api/internal/platform/auth"
 	"github.com/jongschneider/youtube-project/api/internal/platform/cache"
 	"github.com/jongschneider/youtube-project/api/internal/platform/config"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
+	"github.com/jongschneider/youtube-project/api/internal/platform/web"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -42,13 +45,17 @@ func init() {
 
 func main() {
 
+	db := database.New(cfg.DBConfig)
+	cacheSVC := cache.New(cfg.CacheConfig)
+	fmt.Println("cacheSVC:", cacheSVC)
+	authSVC := getAuthClient(cacheSVC)
 	// Create a handler
 	h := handler.New(
 		handler.Config{
-			DB:    database.New(cfg.DBConfig),
-			Cache: cache.New(cfg.CacheConfig),
+			DB:    db,
+			Cache: cacheSVC,
+			Auth:  authSVC,
 			Log:   log,
-			Key:   mustLoadAuthKey(),
 		})
 
 	// Create a new server with all of the routes attached to the server's handler
@@ -89,4 +96,32 @@ func shutdown(srv *http.Server, timeout time.Duration) {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Info(errors.Wrap(err, "shutdown server"))
 	}
+}
+
+func getAuthClient(c *redis.Client) *auth.Service {
+	return auth.New(auth.Config{
+		Issuer:            cfg.AuthConfig.Issuer,
+		PrivateKey:        mustLoadAuthKey(),
+		Enforce:           cfg.AuthConfig.Enforce,
+		RequestValidators: []auth.RequestValidator{},
+		AbortRequest: func(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+			log.WithError(err).WithFields(logrus.Fields{
+				"statuscode": statusCode,
+				"enforcing":  true,
+			}).Info("auth: abort")
+
+			web.RespondWithCodedError(w, r, statusCode, http.StatusText(statusCode), err)
+		},
+		ContinueRequest: func(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+			log.WithError(err).WithFields(logrus.Fields{
+				"statuscode": statusCode,
+				"enforcing":  false,
+			}).Info("auth: continue")
+
+		},
+		TokenBlocked: func(r *http.Request, err error, statusCode int) {
+			log.WithError(err).WithField("statuscode", statusCode).Info("token not granted")
+		},
+		Cache: c,
+	})
 }

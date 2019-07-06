@@ -34,7 +34,7 @@ func New(cfg Config) *redis.Client {
 
 	mustPingRedis(r)
 
-	return nil
+	return r
 }
 
 func getConnectionString(cfg Config) string {

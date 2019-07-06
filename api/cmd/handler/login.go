@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/jongschneider/youtube-project/api/internal/platform/encryption"
-
-	jwtSVC "github.com/jongschneider/youtube-project/api/internal/platform/jwt"
 	"github.com/jongschneider/youtube-project/api/internal/platform/user"
 	"github.com/jongschneider/youtube-project/api/internal/platform/web"
 	"github.com/pkg/errors"
@@ -35,13 +33,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// The email was not in the db
 		if err == sql.ErrNoRows {
-			h.log.WithError(err)
+			h.log.WithError(err).Info()
 			web.RespondWithCodedError(w, r, http.StatusBadRequest, "email does not exist", errors.Wrap(err, "login"))
 			return
 		}
 
 		// Something else went wrong
-		h.log.WithError(err)
+		h.log.WithError(err).Info()
 		web.RespondWithCodedError(w, r, http.StatusInternalServerError, "", errors.Wrap(err, "login"))
 		return
 	}
@@ -49,22 +47,22 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// Compare the hashed password we had in the db with a hashed version of the password the user provided.
 	// If they are the same, we have a match!!!
 	if !encryption.Compare(u.Password, pass) {
-		h.log.WithError(err)
+		h.log.WithError(err).Info()
 		web.RespondWithCodedError(w, r, http.StatusBadRequest, "invalid email/password", errors.Wrap(err, "login"))
 		return
 	}
 
-	token, err := jwtSVC.New(h.key, u.ID)
-	if err != nil {
-		h.log.WithError(err)
-		web.RespondWithCodedError(w, r, http.StatusInternalServerError, "could not issue JWT token", errors.Wrap(err, "login"))
-		return
-	}
+	// token, err := jwtSVC.New(h.key, u.ID)
+	// if err != nil {
+	// 	h.log.WithError(err).Info()
+	// 	web.RespondWithCodedError(w, r, http.StatusInternalServerError, "could not issue JWT token", errors.Wrap(err, "login"))
+	// 	return
+	// }
 
 	web.Respond(w, r, loginResponse{
 		Response: web.Response{
-			Message: "sucess",
+			Message: "success",
 		},
-		Token: token,
+		// Token: token,
 	}, http.StatusOK)
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/jongschneider/youtube-project/api/internal/platform/auth"
 	"github.com/jongschneider/youtube-project/api/internal/platform/cache"
 	"github.com/jongschneider/youtube-project/api/internal/platform/database"
 	"github.com/jongschneider/youtube-project/api/internal/platform/env"
@@ -18,6 +19,7 @@ type Base struct {
 	AppConfig   env.App
 	DBConfig    database.Config
 	CacheConfig cache.Config
+	AuthConfig  auth.Config
 	Port        int  `envconfig:"PORT" required:"true" default:"3000"`
 	Debug       bool `envconfig:"DEBUG" default:"false"`
 }

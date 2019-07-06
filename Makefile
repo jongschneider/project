@@ -7,7 +7,6 @@ dev:
 clean:
 	docker-compose -f dev/docker-compose.yml down --remove-orphans
 	docker system prune -f
-	rm dump.rdb
 
 run:
 	go install ./... && cmd
@@ -21,5 +20,5 @@ cert:
 
 # creates a private key used for signing and issuing  jwt tokens
 key:
-	ssh-keygen -b 2048 -t rsa -f ./auth.pem -N ""
+	ssh-keygen -m PEM -b 2048 -t rsa -f ./auth.pem -N ""
 	rm auth.pem.pub
